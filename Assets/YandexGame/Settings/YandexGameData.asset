@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efa747916aa66674d96ea40ca8a480b2, type: 3}
+  m_Name: YandexGameData
+  m_EditorClassIdentifier: 
+  authorizationEnable: 0
+  leaderboardEnable: 1
+  cloudSaves: 1
+  playerPhotoSize: 0
+  checkAdblock: 0
+  LocalizationEnable: 1
+  autolocationInspector: 1
+  callingLanguageCheck: 0
+  languages:
+    ru: 1
+    en: 1
+    tr: 1
+    az: 0
+    be: 0
+    he: 0
+    hy: 0
+    ka: 0
+    et: 0
+    fr: 0
+    kk: 0
+    ky: 0
+    lt: 0
+    lv: 0
+    ro: 0
+    tg: 0
+    tk: 0
+    uk: 0
+    uz: 0
+  fonts:
+    defaultFont: {fileID: 0}
+    ru: {fileID: 0}
+    en: {fileID: 0}
+    tr: {fileID: 0}
+    az: {fileID: 0}
+    be: {fileID: 0}
+    he: {fileID: 0}
+    hy: {fileID: 0}
+    ka: {fileID: 0}
+    et: {fileID: 0}
+    fr: {fileID: 0}
+    kk: {fileID: 0}
+    ky: {fileID: 0}
+    lt: {fileID: 0}
+    lv: {fileID: 0}
+    ro: {fileID: 0}
+    tg: {fileID: 0}
+    tk: {fileID: 0}
+    uk: {fileID: 0}
+    uz: {fileID: 0}
+  debug: 1

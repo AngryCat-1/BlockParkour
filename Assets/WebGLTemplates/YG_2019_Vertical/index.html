@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | YandexGame</title>
+    <script src="Build/UnityLoader.js"></script>
+    <script>
+        var unityInstance = UnityLoader.instantiate("unityContainer", "%UNITY_WEBGL_BUILD_URL%");
+    </script>
+
+    <style>
+        .my-game {
+            position: absolute;
+            left: 30%;
+            top: 0;
+            width: 40%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            border: none;
+        }
+
+        @media screen and (max-width: 800px) {
+            .my-game {
+                left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div id="unityContainer" class="my-game"></div>
+
+    <!-- Yandex Games SDK -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+
+    <script>
+        var player;
+        var lb;
+
+        YaGames.init(
+            {
+                adv:
+                {
+                    onAdvClose: wasShown => {
+                        console.info('adv closed!');
+                    }
+                }
+            })
+            .then(ysdk => {
+                ysdk.adv.showFullscreenAdv();
+                window.ysdk = ysdk;
+            });
+
+        function initPlayer(photoSize) {
+            return ysdk.getPlayer().then(_player => {
+                player = _player;
+                var authJson = { "playerAuth": "resolved", "playerName": _player.getName(), "playerId": _player.getUniqueID(), "playerPhoto": _player.getPhoto(photoSize) };
+                window.unityInstance.SendMessage('YandexGame', 'SetAuthorization', JSON.stringify(authJson));
+                console.log('auth ok');
+            });
+        }
+
+        function AuthorizationCheck(photoSize) {
+            initPlayer(photoSize).catch(err => {
+                var authJson = { "playerAuth": "rejected", "playerName": "unauthorized", "playerId": "0", "playerPhoto": "null" };
+                window.unityInstance.SendMessage('YandexGame', 'SetAuthorization', JSON.stringify(authJson));
+                console.log('auth failed');
+            });
+        }
+
+        function SaveCloud(jsonData, flush){
+            player.setData({
+                achievements: [jsonData],
+            }, flush).then(() => {
+                console.log('Cloud saves are installed');
+            });
+        }
+
+        function LoadCloud(){
+            player.getData(["achievements"]).then(data => {
+                if (data.achievements) {
+                    window.unityInstance.SendMessage('YandexGame', 'SetLoadSaves', JSON.stringify(data.achievements));
+                }
+                else{
+                    ResetProgress();
+                }
+            }).catch(() => {
+                ResetProgress();
+            });
+        }
+
+        function ResetProgress(){
+            window.unityInstance.SendMessage('YandexGame', 'ResetSaveCloud');
+            console.log('Reset progress');
+        }
+
+        function OpenAuthDialog(photoSize) {
+            ysdk.auth.openAuthDialog().then(() => {
+                initPlayer(photoSize);
+            }).catch(() => {
+                AuthorizationCheck(photoSize);
+            });
+        }
+
+        function InitLeaderboard() {
+            ysdk.getLeaderboards().then(_lb => lb = _lb);
+        }
+
+        function SetLeaderboardScores(_name, score) {
+            ysdk.getLeaderboards()
+                .then(lb => {
+                    lb.setLeaderboardScore(_name, score);
+                });
+        }
+
+        function GetLeaderboardScores(nameLB, maxPlayers, quantityTop, quantityAround, photoSize) {
+            console.log('LeaderBoard Name: ' + nameLB);
+            ysdk.getLeaderboards()
+                .then(lb => {
+                    lb.getLeaderboardEntries('' + nameLB, { quantityTop: quantityTop, includeUser: true, quantityAround: quantityAround })
+                        .then(res => {
+                            console.log(res);
+                            var LeaderboardEntriesText = '';
+
+                            var playersCount;
+                            if (res.entries.length < maxPlayers) {
+                                playersCount = res.entries.length;
+                            }
+                            else {
+                                playersCount = maxPlayers;
+                            }
+
+                            let rank = [maxPlayers];
+                            let photo = [maxPlayers];
+                            let playersName = [maxPlayers];
+                            let scorePlayers = [maxPlayers];
+
+                            var i;
+                            for (i = 0; i < playersCount; i++) {
+                                rank[i] = res.entries[i].rank;
+                                scorePlayers[i] = res.entries[i].score;
+
+                                if (photoSize == 'nonePhoto' || res.entries[i].player.scopePermissions.avatar != "allow") {
+                                    photo[i] = 'nonePhoto';
+                                }
+                                else {
+                                    photo[i] = res.entries[i].player.getAvatarSrc(photoSize);
+                                }
+
+                                if (res.entries[i].player.scopePermissions.public_name != "allow") {
+                                    playersName[i] = "Anonymous";
+                                }
+                                else {
+                                    playersName[i] = res.entries[i].player.publicName;
+                                }
+
+                                LeaderboardEntriesText += rank[i] + '. ' + playersName[i] + ": " + scorePlayers[i] + '\n';
+                            }
+
+                            if (res.entries.length == 0) {
+                                LeaderboardEntriesText = 'No data';
+                            }
+
+                            var jsonLB = { "nameLB": nameLB, "entries": LeaderboardEntriesText, "rank": rank, "photo": photo, "playersName": playersName, "scorePlayers": scorePlayers };
+                            window.unityInstance.SendMessage('YandexGame', 'LeaderboardEntries', JSON.stringify(jsonLB));
+                        });
+                });
+        }
+
+        function FullscreenShow() {
+            window.ysdk.adv.showFullscreenAdv(
+                {
+                    callbacks: {
+                        onOpen: () => {
+                            window.unityInstance.SendMessage('YandexGame', 'OpenFullscreen');
+                        },
+                        onClose: () => {
+                            window.unityInstance.SendMessage('YandexGame', 'CloseFullscreen');
+                        }
+                    }
+                });
+        }
+
+        function RewardedShow(id) {
+            window.ysdk.adv.showRewardedVideo(
+                {
+                    callbacks:
+                    {
+                        onOpen: () => {
+                            window.unityInstance.SendMessage('YandexGame', 'OpenVideo', id);
+                        },
+                        onClose: () => {
+                            window.unityInstance.SendMessage('YandexGame', 'CloseVideo', id);
+                            console.log('Video ad closed. Id: ' + id);
+                        }
+                    }
+                });
+        }
+
+        function LanguageRequest() {
+            window.unityInstance.SendMessage('YandexGame', 'SetLanguage', ysdk.environment.i18n.lang);
+        }
+
+        function RequestingEnvironmentData() {
+            var jsonEnvir = { "domain": ysdk.environment.i18n.tld, "deviceType": ysdk.deviceInfo.type, "isMobile": ysdk.deviceInfo.isMobile(), "isDesktop": ysdk.deviceInfo.isDesktop(), "isTablet": ysdk.deviceInfo.isTablet(), "isTV": ysdk.deviceInfo.isTV() };
+            window.unityInstance.SendMessage('YandexGame', 'SetEnvironmentData', JSON.stringify(jsonEnvir));
+        }
+
+        function Review() {
+            ysdk.feedback.canReview()
+                .then(({ value, reason }) => {
+                    if (value) {
+                        ysdk.feedback.requestReview()
+                            .then(({ feedbackSent }) => {
+                                console.log(feedbackSent);
+                            })
+                    } else {
+                        console.log(reason)
+                    }
+                })
+        }
+
+        window.addEventListener("touchstart", ()=>{
+            container. focus(); 
+            window. focus(); 
+            canvas.focus(); 
+            console.log("click touch");
+        });
+        window.addEventListener("pointerdown", ()=>{ 
+            window. focus(); 
+            console.log("pointer down");
+        });
+
+    </script>
+</body>
+</html>
